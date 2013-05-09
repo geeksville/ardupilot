@@ -168,77 +168,24 @@ Compass::set_declination(float radians, bool save_to_eeprom)
 }
 
 float
-Compass::get_declination()
+Compass::get_declination() const
 {
     return _declination.get();
 }
 
 
 float
-Compass::calculate_heading(float roll, float pitch)
+Compass::calculate_heading(const Matrix3f &dcm_matrix) const
 {
-//  Note - This function implementation is deprecated
-//  The alternate implementation of this function using the dcm matrix is preferred
-    float headX;
-    float headY;
-    float cos_roll;
-    float sin_roll;
-    float cos_pitch;
-    float sin_pitch;
-    float heading;
-
-    cos_roll = cosf(roll);
-    sin_roll = sinf(roll);
-    cos_pitch = cosf(pitch);
-    sin_pitch = sinf(pitch);
+    // Tilt compensated magnetic field Y component:
+    float headY = mag_y * dcm_matrix.c.z - mag_z * dcm_matrix.c.y;
 
     // Tilt compensated magnetic field X component:
-    headX = mag_x*cos_pitch + mag_y*sin_roll*sin_pitch + mag_z*cos_roll*sin_pitch;
-    // Tilt compensated magnetic field Y component:
-    headY = mag_y*cos_roll - mag_z*sin_roll;
-    // magnetic heading
-    heading = atan2f(-headY,headX);
+    float headX = mag_x + dcm_matrix.c.x * (headY - mag_x * dcm_matrix.c.x);
 
-    // Declination correction (if supplied)
-    if( fabsf(_declination) > 0.0f )
-    {
-        heading = heading + _declination;
-        if (heading > PI)    // Angle normalization (-180 deg, 180 deg)
-            heading -= (2.0f * PI);
-        else if (heading < -PI)
-            heading += (2.0f * PI);
-    }
-
-    return heading;
-}
-
-
-float
-Compass::calculate_heading(const Matrix3f &dcm_matrix)
-{
-    float headX;
-    float headY;
-    float cos_pitch = safe_sqrt(1-(dcm_matrix.c.x*dcm_matrix.c.x));
-    float heading;
-
-    // sinf(pitch) = - dcm_matrix(3,1)
-    // cosf(pitch)*sinf(roll) = - dcm_matrix(3,2)
-    // cosf(pitch)*cosf(roll) = - dcm_matrix(3,3)
-
-    if (cos_pitch == 0.0f) {
-        // we are pointing straight up or down so don't update our
-        // heading using the compass. Wait for the next iteration when
-        // we hopefully will have valid values again.
-        return 0;
-    }
-
-    // Tilt compensated magnetic field X component:
-    headX = mag_x*cos_pitch - mag_y*dcm_matrix.c.y*dcm_matrix.c.x/cos_pitch - mag_z*dcm_matrix.c.z*dcm_matrix.c.x/cos_pitch;
-    // Tilt compensated magnetic field Y component:
-    headY = mag_y*dcm_matrix.c.z/cos_pitch - mag_z*dcm_matrix.c.y/cos_pitch;
     // magnetic heading
     // 6/4/11 - added constrain to keep bad values from ruining DCM Yaw - Jason S.
-    heading = constrain_float(atan2f(-headY,headX), -3.15f, 3.15f);
+    float heading = constrain_float(atan2f(-headY,headX), -3.15f, 3.15f);
 
     // Declination correction (if supplied)
     if( fabsf(_declination) > 0.0f )
