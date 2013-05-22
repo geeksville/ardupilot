@@ -53,6 +53,9 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 
+# Added to fix Firmware/src/drivers/px4io/px4io.cpp:533: undefined reference to `mavlink_vasprintf'
+MODULES		+= modules/mavlink
+
 #
 # Transitional support - add commands from the NuttX export archive.
 #
