@@ -30,12 +30,14 @@
 
 #define WPNAV_WP_ACCELERATION           500.0f      // acceleration in cm/s/s used to increase the speed of the intermediate point up to it's maximum speed held in _speed_xy_cms
 
+#define WPNAV_MIN_LEASH_LENGTH          100.0f      // minimum leash lengths in cm
+
 class AC_WPNav
 {
 public:
 
     /// Constructor
-    AC_WPNav(AP_InertialNav* inav, APM_PI* pid_pos_lat, APM_PI* pid_pos_lon, AC_PID* pid_rate_lat, AC_PID* pid_rate_lon);
+    AC_WPNav(AP_InertialNav* inav, AP_AHRS* ahrs, APM_PI* pid_pos_lat, APM_PI* pid_pos_lon, AC_PID* pid_rate_lat, AC_PID* pid_rate_lon);
 
     ///
     /// simple loiter controller
@@ -70,6 +72,9 @@ public:
 
     /// get_angle_limit - retrieve maximum angle in centi-degrees the copter will lean
     int32_t get_angle_limit() const { return _lean_angle_max; }
+
+    /// get_stopping_point - returns vector to stopping point based on a horizontal position and velocity
+    void get_stopping_point(const Vector3f& position, const Vector3f& velocity, Vector3f &target) const;
 
     ///
     /// waypoint controller
@@ -144,9 +149,6 @@ protected:
         uint8_t fast_waypoint           : 1;    // true if we should ignore the waypoint radius and consider the waypoint complete once the intermediate target has reached the waypoint
     } _flags;
 
-    /// project_stopping_point - returns vector to stopping point based on a horizontal position and velocity
-    void project_stopping_point(const Vector3f& position, const Vector3f& velocity, Vector3f &target);
-
     /// translate_loiter_target_movements - consumes adjustments created by move_loiter_target
     void translate_loiter_target_movements(float nav_dt);
 
@@ -175,8 +177,9 @@ protected:
     ///    set climb param to true if track climbs vertically, false if descending
     void calculate_wp_leash_length(bool climb);
 
-    // pointers to inertial nav library
+    // pointers to inertial nav and ahrs libraries
     AP_InertialNav*	_inav;
+    AP_AHRS*        _ahrs;
 
     // pointers to pid controllers
     APM_PI*		_pid_pos_lat;

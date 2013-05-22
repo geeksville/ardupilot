@@ -59,8 +59,9 @@ const AP_Param::GroupInfo AC_WPNav::var_info[] PROGMEM = {
 // Note that the Vector/Matrix constructors already implicitly zero
 // their values.
 //
-AC_WPNav::AC_WPNav(AP_InertialNav* inav, APM_PI* pid_pos_lat, APM_PI* pid_pos_lon, AC_PID* pid_rate_lat, AC_PID* pid_rate_lon) :
+AC_WPNav::AC_WPNav(AP_InertialNav* inav, AP_AHRS* ahrs, APM_PI* pid_pos_lat, APM_PI* pid_pos_lon, AC_PID* pid_rate_lat, AC_PID* pid_rate_lon) :
     _inav(inav),
+    _ahrs(ahrs),
     _pid_pos_lat(pid_pos_lat),
     _pid_pos_lon(pid_pos_lon),
     _pid_rate_lat(pid_rate_lat),
@@ -78,6 +79,8 @@ AC_WPNav::AC_WPNav(AP_InertialNav* inav, APM_PI* pid_pos_lat, APM_PI* pid_pos_lo
     _target_vel(0,0,0),
     _vel_last(0,0,0),
     _lean_angle_max(MAX_LEAN_ANGLE),
+    _loiter_leash(WPNAV_MIN_LEASH_LENGTH),
+    _wp_leash_xy(WPNAV_MIN_LEASH_LENGTH),
     dist_error(0,0),
     desired_vel(0,0),
     desired_accel(0,0)
@@ -92,31 +95,32 @@ AC_WPNav::AC_WPNav(AP_InertialNav* inav, APM_PI* pid_pos_lat, APM_PI* pid_pos_lo
 /// simple loiter controller
 ///
 
-/// project_stopping_point - returns vector to stopping point based on a horizontal position and velocity
-void AC_WPNav::project_stopping_point(const Vector3f& position, const Vector3f& velocity, Vector3f &target)
+/// get_stopping_point - returns vector to stopping point based on a horizontal position and velocity
+void AC_WPNav::get_stopping_point(const Vector3f& position, const Vector3f& velocity, Vector3f &target) const
 {
     float linear_distance;      // half the distace we swap between linear and sqrt and the distace we offset sqrt.
     float linear_velocity;      // the velocity we swap between linear and sqrt.
     float vel_total;
     float target_dist;
+    float kP = _pid_pos_lat->kP();
 
-    // avoid divide by zero
-    if( _pid_pos_lat->kP() <= 0.1 ) {
+    // calculate current velocity
+    vel_total = safe_sqrt(velocity.x*velocity.x + velocity.y*velocity.y);
+
+    // avoid divide by zero by using current position if the velocity is below 10cm/s or kP is very low
+    if (vel_total < 10.0f || kP <= 0.0f) {
         target = position;
         return;
     }
 
     // calculate point at which velocity switches from linear to sqrt
-    linear_velocity = MAX_LOITER_POS_ACCEL/_pid_pos_lat->kP();
-
-    // calculate total current velocity
-    vel_total = safe_sqrt(velocity.x*velocity.x + velocity.y*velocity.y);
+    linear_velocity = MAX_LOITER_POS_ACCEL/kP;
 
     // calculate distance within which we can stop
     if (vel_total < linear_velocity) {
-        target_dist = vel_total/_pid_pos_lat->kP();
+        target_dist = vel_total/kP;
     } else {
-        linear_distance = MAX_LOITER_POS_ACCEL/(2*_pid_pos_lat->kP()*_pid_pos_lat->kP());
+        linear_distance = MAX_LOITER_POS_ACCEL/(2*kP*kP);
         target_dist = linear_distance + (vel_total*vel_total)/(2*MAX_LOITER_POS_ACCEL);
     }
     target_dist = constrain_float(target_dist, 0, _loiter_leash);
@@ -131,9 +135,13 @@ void AC_WPNav::set_loiter_target(const Vector3f& position, const Vector3f& veloc
 {
     Vector3f target;
     calculate_loiter_leash_length();
-    project_stopping_point(position, velocity, target);
+    get_stopping_point(position, velocity, target);
     _target.x = target.x;
     _target.y = target.y;
+
+    // initialise desired roll and pitch to current roll and pitch.  This avoids a random twitch between now and when the loiter controller is first run
+    _desired_roll = constrain_int32(_ahrs->roll_sensor,-MAX_LEAN_ANGLE,MAX_LEAN_ANGLE);
+    _desired_pitch = constrain_int32(_ahrs->pitch_sensor,-MAX_LEAN_ANGLE,MAX_LEAN_ANGLE);
 }
 
 /// move_loiter_target - move loiter target by velocity provided in front/right directions in cm/s
@@ -163,8 +171,8 @@ void AC_WPNav::translate_loiter_target_movements(float nav_dt)
 
     // constrain the velocity vector and scale if necessary
     vel_delta_total = safe_sqrt(target_vel_adj.x*target_vel_adj.x + target_vel_adj.y*target_vel_adj.y);
-    vel_max = MAX_LOITER_POS_ACCEL*nav_dt;
-    if( vel_delta_total >  vel_max) {
+    vel_max = 2.0*MAX_LOITER_POS_ACCEL*nav_dt;
+    if (vel_delta_total > vel_max && vel_delta_total > 0.0f) {
         target_vel_adj.x = vel_max * target_vel_adj.x/vel_delta_total;
         target_vel_adj.y = vel_max * target_vel_adj.y/vel_delta_total;
     }
@@ -175,7 +183,7 @@ void AC_WPNav::translate_loiter_target_movements(float nav_dt)
 
     // constrain the velocity vector and scale if necessary
     vel_total = safe_sqrt(_target_vel.x*_target_vel.x + _target_vel.y*_target_vel.y);
-    if( vel_total > _loiter_speed_cms ) {
+    if (vel_total > _loiter_speed_cms && vel_total > 0.0f) {
         _target_vel.x = _loiter_speed_cms * _target_vel.x/vel_total;
         _target_vel.y = _loiter_speed_cms * _target_vel.y/vel_total;
     }
@@ -188,7 +196,7 @@ void AC_WPNav::translate_loiter_target_movements(float nav_dt)
     Vector3f curr_pos = _inav->get_position();
     Vector3f distance_err = _target - curr_pos;
     float distance = safe_sqrt(distance_err.x*distance_err.x + distance_err.y*distance_err.y);
-    if( distance > _loiter_leash ) {
+    if (distance > _loiter_leash && distance > 0.0f) {
         _target.x = curr_pos.x + _loiter_leash * distance_err.x/distance;
         _target.y = curr_pos.y + _loiter_leash * distance_err.y/distance;
     }
@@ -232,6 +240,12 @@ void AC_WPNav::calculate_loiter_leash_length()
     // get loiter position P
     float kP = _pid_pos_lat->kP();
 
+    // avoid divide by zero
+    if (kP <= 0.0f) {
+        _loiter_leash = WPNAV_MIN_LEASH_LENGTH;
+        return;
+    }
+
     // calculate horiztonal leash length
     if(_loiter_speed_cms <= MAX_LOITER_POS_ACCEL / kP) {
         // linear leash length based on speed close in
@@ -242,8 +256,8 @@ void AC_WPNav::calculate_loiter_leash_length()
     }
 
     // ensure leash is at least 1m long
-    if( _loiter_leash < 100 ) {
-        _loiter_leash = 100;
+    if( _loiter_leash < WPNAV_MIN_LEASH_LENGTH ) {
+        _loiter_leash = WPNAV_MIN_LEASH_LENGTH;
     }
 }
 
@@ -259,7 +273,7 @@ void AC_WPNav::set_destination(const Vector3f& destination)
         _origin = _destination;
     }else{
         // otherwise calculate origin from the current position and velocity
-        project_stopping_point(_inav->get_position(), _inav->get_velocity(), _origin);
+        get_stopping_point(_inav->get_position(), _inav->get_velocity(), _origin);
     }
 
     // set origin and destination
@@ -281,7 +295,16 @@ void AC_WPNav::set_origin_and_destination(const Vector3f& origin, const Vector3f
     // scale up z-axis position delta (i.e. distance) to make later leash length calculations simpler
     pos_delta.z = pos_delta.z * _vert_track_scale;
     _track_length = pos_delta.length();
-    _pos_delta_unit = pos_delta/_track_length;
+
+    // calculate each axis' percentage of the total distance to the destination
+    if (_track_length == 0.0f) {
+        // avoid possible divide by zero
+        _pos_delta_unit.x = 0;
+        _pos_delta_unit.y = 0;
+        _pos_delta_unit.z = 0;
+    }else{        
+        _pos_delta_unit = pos_delta/_track_length;
+    }
 
     // initialise intermediate point to the origin
     _track_desired = 0;
@@ -293,6 +316,10 @@ void AC_WPNav::set_origin_and_destination(const Vector3f& origin, const Vector3f
 
     // default waypoint back to slow
     _flags.fast_waypoint = false;
+
+    // initialise desired roll and pitch to current roll and pitch.  This avoids a random twitch between now and when the wpnav controller is first run
+    _desired_roll = constrain_int32(_ahrs->roll_sensor,-MAX_LEAN_ANGLE,MAX_LEAN_ANGLE);
+    _desired_pitch = constrain_int32(_ahrs->pitch_sensor,-MAX_LEAN_ANGLE,MAX_LEAN_ANGLE);
 }
 
 /// advance_target_along_track - move target location along track from origin to destination
@@ -410,29 +437,36 @@ void AC_WPNav::get_loiter_position_to_velocity(float dt, float max_speed_cms)
     float vel_total;
 
     float linear_distance;      // the distace we swap between linear and sqrt.
+    float kP = _pid_pos_lat->kP();
 
-    // calculate distance error
-    dist_error.x = _target.x - curr.x;
-    dist_error.y = _target.y - curr.y;
-
-    linear_distance = MAX_LOITER_POS_ACCEL/(2*_pid_pos_lat->kP()*_pid_pos_lat->kP());
-    _distance_to_target = linear_distance;      // for reporting purposes
-
-    dist_error_total = safe_sqrt(dist_error.x*dist_error.x + dist_error.y*dist_error.y);
-    if( dist_error_total > 2*linear_distance ) {
-        vel_sqrt = safe_sqrt(2*MAX_LOITER_POS_ACCEL*(dist_error_total-linear_distance));
-        desired_vel.x = vel_sqrt * dist_error.x/dist_error_total;
-        desired_vel.y = vel_sqrt * dist_error.y/dist_error_total;
+    // avoid divide by zero
+    if (kP <= 0.0f) {
+        desired_vel.x = 0.0;
+        desired_vel.y = 0.0;
     }else{
-        desired_vel.x = _pid_pos_lat->get_p(dist_error.x);
-        desired_vel.y = _pid_pos_lon->get_p(dist_error.y);
-    }
+        // calculate distance error
+        dist_error.x = _target.x - curr.x;
+        dist_error.y = _target.y - curr.y;
 
-    // ensure velocity stays within limits
-    vel_total = safe_sqrt(desired_vel.x*desired_vel.x + desired_vel.y*desired_vel.y);
-    if( vel_total > max_speed_cms ) {
-        desired_vel.x = max_speed_cms * desired_vel.x/vel_total;
-        desired_vel.y = max_speed_cms * desired_vel.y/vel_total;
+        linear_distance = MAX_LOITER_POS_ACCEL/(2*kP*kP);
+        _distance_to_target = linear_distance;      // for reporting purposes
+
+        dist_error_total = safe_sqrt(dist_error.x*dist_error.x + dist_error.y*dist_error.y);
+        if( dist_error_total > 2*linear_distance ) {
+            vel_sqrt = safe_sqrt(2*MAX_LOITER_POS_ACCEL*(dist_error_total-linear_distance));
+            desired_vel.x = vel_sqrt * dist_error.x/dist_error_total;
+            desired_vel.y = vel_sqrt * dist_error.y/dist_error_total;
+        }else{
+            desired_vel.x = _pid_pos_lat->get_p(dist_error.x);
+            desired_vel.y = _pid_pos_lon->get_p(dist_error.y);
+        }
+
+        // ensure velocity stays within limits
+        vel_total = safe_sqrt(desired_vel.x*desired_vel.x + desired_vel.y*desired_vel.y);
+        if( vel_total > max_speed_cms ) {
+            desired_vel.x = max_speed_cms * desired_vel.x/vel_total;
+            desired_vel.y = max_speed_cms * desired_vel.y/vel_total;
+        }
     }
 
     // call velocity to acceleration controller
@@ -536,6 +570,12 @@ void AC_WPNav::calculate_wp_leash_length(bool climb)
     // get loiter position P
     float kP = _pid_pos_lat->kP();
 
+    // avoid divide by zero
+    if (kP <= 0.0f) {
+        _wp_leash_xy = WPNAV_MIN_LEASH_LENGTH;
+        _vert_track_scale = 1.0f;
+        return;
+    }
     // calculate horiztonal leash length
     if(_wp_speed_cms <= MAX_LOITER_POS_ACCEL / kP) {
         // linear leash length based on speed close in
@@ -546,8 +586,8 @@ void AC_WPNav::calculate_wp_leash_length(bool climb)
     }
 
     // ensure leash is at least 1m long
-    if( _wp_leash_xy < 100 ) {
-        _wp_leash_xy = 100;
+    if( _wp_leash_xy < WPNAV_MIN_LEASH_LENGTH ) {
+        _wp_leash_xy = WPNAV_MIN_LEASH_LENGTH;
     }
 
     // calculate vertical leash length
@@ -566,8 +606,8 @@ void AC_WPNav::calculate_wp_leash_length(bool climb)
     }
 
     // ensure leash is at least 1m long
-    if( leash_z < 100 ) {
-        leash_z = 100;
+    if( leash_z < WPNAV_MIN_LEASH_LENGTH ) {
+        leash_z = WPNAV_MIN_LEASH_LENGTH;
     }
 
     // calculate vertical track scale used to give altitude equal weighting to horizontal position

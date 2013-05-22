@@ -489,7 +489,8 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: LOG_BITMASK
     // @DisplayName: Log bitmask
-    // @Description: bitmap of log fields to enable
+    // @Description: Two byte bitmap of log types to enable in dataflash
+    // @Values: 0:Disabled,1902:Default,2030:Default+IMU
     // @User: Advanced
     GSCALAR(log_bitmask,            "LOG_BITMASK",    DEFAULT_LOG_BITMASK),
 
@@ -623,6 +624,8 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // barometer ground calibration. The GND_ prefix is chosen for
     // compatibility with previous releases of ArduPlane
+    // @Group: GND_
+    // @Path: ../libraries/AP_Baro/AP_Baro.cpp
     GOBJECT(barometer, "GND_", AP_Baro),
 
 #if CAMERA == ENABLED
