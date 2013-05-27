@@ -44,12 +44,18 @@ class XmlEmit(Emit):
                 t += ' documentation=%s' % quoteattr(param.Description) # i.e. parameter docs
             if hasattr(param, 'User'):
                 t += ' user=%s' % quoteattr(param.User) # i.e. Standard or Advanced
-            
+
+            if hasattr(param, 'Share'):
+                t += ' share=%s' % quoteattr(param.Share) # normally Vehicle
+        
+            if hasattr(param, 'UIHint'):
+                t += ' uihint=%s' % quoteattr(param.UIHint) # for special params
+        
             t += ">\n"
             
             # Add values as chidren of this node
             for field in param.__dict__.keys():
-                if field not in ['name', 'DisplayName', 'Description', 'User'] and field in known_param_fields:
+                if field not in ['name', 'DisplayName', 'Description', 'User', 'Share'] and field in known_param_fields:
                     if field == 'Values' and Emit.prog_values_field.match(param.__dict__[field]):
                         t+= "<values>\n"
                         

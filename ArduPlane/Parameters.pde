@@ -450,8 +450,8 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Description: Reverse elevon mixing
     // @Values: 0:Disabled,1:Enabled
     // @User: User
+    // @Share: Vehicle
     GSCALAR(reverse_elevons,        "ELEVON_REVERSE", ELEVON_REVERSE),
-
 
     // @Param: ELEVON_CH1_REV
     // @DisplayName: Elevon reverse

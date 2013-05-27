@@ -22,8 +22,10 @@ known_param_fields = [
              'Range',
              'Units',
              'Increment',
-             'User',                         
-                      ]
+             'User',
+             'Share',
+             'UIHint'
+             ]
 
 required_param_fields = [
              'Description',

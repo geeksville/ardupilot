@@ -54,7 +54,7 @@ class WikiEmit(Emit):
                 t += "\n\n_TODO: description_\n"
                 
             for field in param.__dict__.keys():
-                if field not in ['name', 'DisplayName', 'Description', 'User'] and field in known_param_fields:
+                if field not in ['name', 'DisplayName', 'Description', 'User', 'Share'] and field in known_param_fields:
                     if field == 'Values' and Emit.prog_values_field.match(param.__dict__[field]):
                         t+= " * Values \n"
                         values = (param.__dict__[field]).split(',')
