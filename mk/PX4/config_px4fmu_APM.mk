@@ -56,6 +56,9 @@ MODULES		+= modules/uORB
 # Added to fix Firmware/src/drivers/px4io/px4io.cpp:533: undefined reference to `mavlink_vasprintf'
 MODULES		+= modules/mavlink
 
+# The FlyingSquirrel scripting environment
+# MODULES         += modules/flyingsquirrel
+
 #
 # Transitional support - add commands from the NuttX export archive.
 #
