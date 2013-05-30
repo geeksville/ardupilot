@@ -53,6 +53,9 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 
+# The FlyingSquirrel scripting environment
+MODULES         += modules/flyingsquirrel
+
 #
 # Transitional support - add commands from the NuttX export archive.
 #
