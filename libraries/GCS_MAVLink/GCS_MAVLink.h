@@ -13,6 +13,13 @@
 // to select MAVLink 1.0 in the arduino GUI build
 #define MAVLINK_SEPARATE_HELPERS
 
+// The flsq script engine needs to know about start of packet
+#define HAS_FLSQ
+#ifdef HAS_FLSQ
+#define MAVLINK_START_UART_SEND(chan, length) comm_send_start(chan, length)
+#define MAVLINK_END_UART_SEND(chan, length) comm_send_end(chan, length)
+#endif
+
 #define MAVLINK_SEND_UART_BYTES(chan, buf, len) comm_send_buffer(chan, buf, len)
 
 // define our own MAVLINK_MESSAGE_CRC() macro to allow it to be put
@@ -42,6 +49,11 @@ extern AP_HAL::BetterStream	*mavlink_comm_1_port;
 
 /// MAVLink system definition
 extern mavlink_system_t mavlink_system;
+
+#ifdef HAS_FLSQ
+void comm_send_start(mavlink_channel_t chan, uint8_t len);
+void comm_send_end(mavlink_channel_t chan, uint8_t len);
+#endif
 
 /// Send a byte to the nominated MAVLink channel
 ///
