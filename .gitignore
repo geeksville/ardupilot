@@ -33,6 +33,7 @@ tags
 test.ArduCopter/*
 /tmp/*
 *.o
+*.d
 .*.swp
 .*.swo
 mav.log
