@@ -54,7 +54,9 @@ MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 
 # The FlyingSquirrel scripting environment
-MODULES         += modules/flyingsquirrel
+ifneq ($(FLSQ_ROOT),)
+MODULES         += $(FLSQ_ROOT)/flsq/apm
+endif
 
 #
 # Transitional support - add commands from the NuttX export archive.

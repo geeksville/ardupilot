@@ -20,3 +20,6 @@ endif
 	@echo  >> $(SKETCHBOOK)/config.mk
 	@echo \# PX4 app build: uncomment and fill in the path to PX4 Firmware repository: >> $(SKETCHBOOK)/config.mk
 	@echo \# PX4_ROOT = /path/to/Firmware >> $(SKETCHBOOK)/config.mk
+	@echo  >> $(SKETCHBOOK)/config.mk
+	@echo \# If you are interested in alpha testing http://www.github.com/geeksville/flsq define the following >> $(SKETCHBOOK)/config.mk
+	@echo \# export FLSQ_ROOT = /path/to/flyingsquirrel >> $(SKETCHBOOK)/config.mk
