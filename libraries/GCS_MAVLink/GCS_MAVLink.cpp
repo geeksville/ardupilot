@@ -52,16 +52,9 @@ uint8_t mav_var_type(enum ap_var_type t)
 
 #ifdef HAS_FLSQ
 
-extern "C" void flsq_send_start(), flsq_send_end(), flsq_send_buffer(const uint8_t *buf, uint8_t len);
+// Provided by APMOS.cpp in FLSQ
+extern void flsq_send_start(), flsq_send_end(), flsq_send_buffer(const uint8_t *buf, uint8_t len);
 
-void flsq_send_start(void) {
-}
-
-void flsq_send_end(void) {
-}
-
-void flsq_send_buffer(const uint8_t *buf, uint8_t len) {
-}
 
 
 void comm_send_start(mavlink_channel_t chan, uint8_t len) 
