@@ -14,7 +14,6 @@
 #define MAVLINK_SEPARATE_HELPERS
 
 // The flsq script engine needs to know about start of packet
-#define HAS_FLSQ
 #ifdef HAS_FLSQ
 #define MAVLINK_START_UART_SEND(chan, length) comm_send_start(chan, length)
 #define MAVLINK_END_UART_SEND(chan, length) comm_send_end(chan, length)
