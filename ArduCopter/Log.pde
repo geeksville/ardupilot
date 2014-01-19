@@ -186,7 +186,7 @@ static void Log_Write_AutoTune(uint8_t axis, uint8_t tune_step, float rate_min, 
         new_gain_rd  : new_gain_rd,
         new_gain_sp  : new_gain_sp
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_AutoTuneDetails {
@@ -203,7 +203,7 @@ static void Log_Write_AutoTuneDetails(int16_t angle_cd, float rate_cds)
         angle_cd    : angle_cd,
         rate_cds    : rate_cds
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 #endif
 
@@ -229,7 +229,7 @@ static void Log_Write_Current()
         board_voltage       : board_voltage(),
         current_total       : battery.current_total_mah()
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_Optflow {
@@ -261,7 +261,7 @@ static void Log_Write_Optflow()
         roll            : of_roll,
         pitch           : of_pitch
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
  #endif     // OPTFLOW == ENABLED
 }
 
@@ -301,7 +301,7 @@ static void Log_Write_Nav_Tuning()
         desired_roll        : wp_nav.get_desired_roll(),
         desired_pitch       : wp_nav.get_desired_pitch()
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_Control_Tuning {
@@ -332,7 +332,7 @@ static void Log_Write_Control_Tuning()
         throttle_out        : g.rc_3.servo_out,
         desired_climb_rate  : desired_climb_rate
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_Compass {
@@ -384,7 +384,7 @@ static void Log_Write_Compass()
             motor_offset_y  : (int16_t)mag2_motor_offsets.y,
             motor_offset_z  : (int16_t)mag2_motor_offsets.z
         };
-        DataFlash.WriteBlock(&pkt2, sizeof(pkt2));
+        DataFlash.WriteBlock(&pkt2, (uint16_t) sizeof(pkt2));
     }
 #endif
 }
@@ -417,7 +417,7 @@ static void Log_Write_Performance()
         ins_error_count  : ins.error_count(),
         inav_error_count : inertial_nav.error_count()
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_Cmd {
@@ -446,7 +446,7 @@ static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
         waypoint_latitude   : wp->lat,
         waypoint_longitude  : wp->lng
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_Attitude {
@@ -523,7 +523,7 @@ static void Log_Write_Mode(uint8_t mode)
         mode            : mode,
         throttle_cruise : g.throttle_cruise,
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_Startup {
@@ -536,7 +536,7 @@ static void Log_Write_Startup()
     struct log_Startup pkt = {
         LOG_PACKET_HEADER_INIT(LOG_STARTUP_MSG)
     };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
 }
 
 struct PACKED log_Event {
@@ -552,7 +552,7 @@ static void Log_Write_Event(uint8_t id)
             LOG_PACKET_HEADER_INIT(LOG_EVENT_MSG),
             id  : id
         };
-        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+        DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
     }
 }
 
@@ -571,7 +571,7 @@ static void Log_Write_Data(uint8_t id, int16_t value)
             id          : id,
             data_value  : value
         };
-        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+        DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
     }
 }
 
@@ -590,7 +590,7 @@ static void Log_Write_Data(uint8_t id, uint16_t value)
             id          : id,
             data_value  : value
         };
-        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+        DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
     }
 }
 
@@ -609,7 +609,7 @@ static void Log_Write_Data(uint8_t id, int32_t value)
             id          : id,
             data_value  : value
         };
-        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+        DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
     }
 }
 
@@ -628,7 +628,7 @@ static void Log_Write_Data(uint8_t id, uint32_t value)
             id          : id,
             data_value  : value
         };
-        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+        DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
     }
 }
 
@@ -647,7 +647,7 @@ static void Log_Write_Data(uint8_t id, float value)
             id          : id,
             data_value  : value
         };
-        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+        DataFlash.WriteBlock(&pkt, (uint16_t) sizeof(pkt));
     }
 }
 
