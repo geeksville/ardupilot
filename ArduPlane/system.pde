@@ -107,6 +107,9 @@ static void init_ardupilot()
     // initialise sonar
     init_sonar();
 
+    // initialise battery monitoring
+    battery.init();
+
     // init the GCS
     gcs[0].init(hal.uartA);
 
@@ -289,6 +292,9 @@ static void set_mode(enum FlightMode mode)
 
     // cancel inverted flight
     auto_state.inverted_flight = false;
+
+    // don't cross-track when starting a mission
+    auto_state.next_wp_no_crosstrack = true;
 
     // set mode
     previous_mode = control_mode;
@@ -633,4 +639,15 @@ static void telemetry_send(void)
     frsky_telemetry.send_frames((uint8_t)control_mode, 
                                 (AP_Frsky_Telem::FrSkyProtocol)g.serial2_protocol.get());
 #endif
+}
+
+
+/*
+  return throttle percentage from 0 to 100
+ */
+static uint8_t throttle_percentage(void)
+{
+    // to get the real throttle we need to use norm_output() which
+    // returns a number from -1 to 1.
+    return constrain_int16(50*(channel_throttle->norm_output()+1), 0, 100);
 }
