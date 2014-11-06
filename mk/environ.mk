@@ -4,7 +4,9 @@
 #
 SYSTYPE			:=	$(shell uname)
 
-GIT_VERSION := $(shell git rev-parse HEAD | cut -c1-8)
+# We pass the first 8 bytes (16 chars) of the githash into the strings emitted from the console 
+# (previously we passed only 4 bytes - but autopilot_version_msg requires more)
+GIT_VERSION := $(shell git rev-parse HEAD | cut -c1-16)
 EXTRAFLAGS += -DGIT_VERSION="\"$(GIT_VERSION)\""
 
 # force LANG to C so awk works sanely on MacOS

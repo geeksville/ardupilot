@@ -1,5 +1,11 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
+#define VERSION_BUILDFAMILY 1 // 0-15: 1 for AP, 2 for AC etc...
+#define VERSION_MAJOR 3 // 0-255
+#define VERSION_MINOR 1 // 0-15
+#define VERSION_SUBMINOR 2 // 0-255
+#define VERSION_BUILDTYPE 1 // 0-15: 0 for alpha, 1 for beta, 2 for release candidate, 3 for final
+#define VERSION_SUPERMINOR 16 // 0-15
 #define THISFIRMWARE "ArduPlane V3.1.2beta1"
 /*
    Lead developer: Andrew Tridgell
@@ -1023,6 +1029,8 @@ static void one_second_loop()
 
     // send a heartbeat
     gcs_send_message(MSG_HEARTBEAT);
+
+    gcs_send_message(MSG_AUTOPILOT_VERSION);
 
     // make it possible to change control channel ordering at runtime
     set_control_channels();

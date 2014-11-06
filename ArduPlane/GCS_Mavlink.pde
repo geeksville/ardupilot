@@ -102,6 +102,31 @@ static NOINLINE void send_heartbeat(mavlink_channel_t chan)
         system_status);
 }
 
+static NOINLINE void send_autopilot_version(mavlink_channel_t chan)
+{   
+    uint64_t capabilities = 0; // FIXME: such as MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT
+
+    uint8_t custom_version[8]; // first 8 bytes (16 chars) of git hash
+
+    uint32_t version = (VERSION_MAJOR << 20) | (VERSION_BUILDFAMILY << 28) | 
+    (VERSION_MINOR << 16) | (VERSION_SUBMINOR << 8) | (VERSION_SUPERMINOR << 0) | 
+    (VERSION_BUILDTYPE << 4); // Firmware version number
+
+#ifdef GIT_VERSION
+    for(uint i = 0; i < sizeof(custom_version); i++) // We convert by byte so that it works on any endianness 
+        custom_version[i] = (uint8_t) strtol(GIT_VERSION + i * 2, NULL, 16);
+#else
+    memset(custom_version, 0, sizeof(custom_version));
+#endif
+
+    mavlink_msg_autopilot_version_send(
+        chan,
+        capabilities,
+        version,
+        custom_version
+        );
+}
+
 static NOINLINE void send_attitude(mavlink_channel_t chan)
 {
     Vector3f omega = ahrs.get_gyro();
@@ -505,6 +530,11 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
     }
 
     switch (id) {
+    case MSG_AUTOPILOT_VERSION:
+        CHECK_PAYLOAD_SIZE(AUTOPILOT_VERSION);
+        send_autopilot_version(chan);
+        return true;
+
     case MSG_HEARTBEAT:
         CHECK_PAYLOAD_SIZE(HEARTBEAT);
         gcs[chan-MAVLINK_COMM_0].last_heartbeat_time = hal.scheduler->millis();
