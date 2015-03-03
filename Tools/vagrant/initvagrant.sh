@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e 
+set -e
 
 echo "Initial setup of SITL-vagrant instance."
 sudo apt-get -y update
@@ -9,8 +9,7 @@ sudo apt-get -y install dos2unix python-wxgtk2.8 python-scipy python-matplotlib 
 sudo pip install pymavlink MAVProxy
 
 echo "source /vagrant/Tools/vagrant/shellinit.sh" >>/home/vagrant/.profile
-rm /home/vagrant/.screenrc
-ln -s /vagrant/Tools/vagrant/screenrc /home/vagrant/.screenrc
+ln -sf /vagrant/Tools/vagrant/screenrc /home/vagrant/.screenrc
 
 # build JSB sim
 pushd /tmp
